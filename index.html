@@ -6,6 +6,10 @@
 <title>Pilar Fagalde · Portfolio</title>
 <meta name="description" content="Portfolio de Pilar Fagalde, estudiante avanzada de la Licenciatura en Diseño Gráfico (UNSTA). Identidad visual, rebranding, diseño editorial y packaging.">
 <meta name="theme-color" content="#A8A8A8">
+<!-- Si se agrega a la pantalla de inicio del celular, se abre sin barras del navegador -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preload" as="image" href="img/02-der.webp">
 <link rel="preload" as="image" href="img/vegetal-barras.png">
 
@@ -271,8 +275,8 @@ const ZOOM = 2.2;
    9. MEDIDAS (el libro ocupa ~94 % del ancho o ~90 % del alto)
    ========================================================= */
 function medir() {
-  const chica = innerHeight < 500;                 // celular apaisado: aprovechar más la pantalla
-  const aw = innerWidth * (chica ? 0.98 : 0.94), ah = innerHeight * (chica ? 0.96 : 0.9);
+  const chica = innerHeight < 500;                 // celular apaisado: usar todo el alto
+  const aw = innerWidth * (chica ? 1 : 0.94), ah = innerHeight * (chica ? 1 : 0.9);
   W = Math.floor(Math.min(aw / 2, ah * RATIO));
   H = Math.round(W / RATIO);
   document.documentElement.style.setProperty('--W', W + 'px');
@@ -555,9 +559,26 @@ libro.addEventListener('pointermove', e => {
   else if (modo === 'asomo' && (!d || d !== pase.dir)) dejarDeAsomar();
 });
 
+/* Celular apaisado: el primer toque pone la página en pantalla completa
+   (oculta las barras del navegador, como una presentación). En iPhone el
+   navegador no lo permite; ahí funciona si se agrega a la pantalla de inicio. */
+function quierePantallaCompleta(e) {
+  return e.pointerType === 'touch' && innerHeight < 500 && innerWidth > innerHeight &&
+         document.fullscreenEnabled && !document.fullscreenElement;
+}
+function pantallaCompleta() {
+  document.documentElement.requestFullscreen({ navigationUI: 'hide' })
+    .then(() => { try { screen.orientation.lock('landscape').catch(() => {}); } catch (_) {} })
+    .catch(() => {});
+}
+
 function soltar(e, cancelado) {
   if (!press || e.pointerId !== press.id) return;
   const pr = press; press = null;
+  if (!cancelado && !pr.movido && quierePantallaCompleta(e)) {   // este toque solo agranda
+    modo = 'quieto'; pantallaCompleta(); return;
+  }
+  if (!cancelado && quierePantallaCompleta(e)) pantallaCompleta();
   if (pr.movido) {
     const P = pr.p.P;
     const rapido = pr.dir > 0 ? pr.vx < -0.5 : pr.vx > 0.5;
